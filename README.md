@@ -1,2 +1,2 @@
 # SNASVM
-Subspace Newton Method for Sparse SVM
+Subspace Newton Method for Sparse Support Vector Machines 
