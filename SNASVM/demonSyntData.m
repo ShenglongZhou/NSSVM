@@ -1,17 +1,6 @@
 % demon randomly generated data
 clc; close all; clear all;  warning off
  
-type        = 2; % 1 or 2
-m0          = 2e2*(type==1)+2e6*(type~=1);
-[X,y,tX,ty] = randomData('2D',m0,2,0);  
-m           = size(X,1); 
-
-pars.s0     = ceil(log10(m)*(10*(m<=1e4)+100*(m>1e4)));
-out         = SNASVM(X,y,pars); 
-
-% demon randomly generated data
-clc; close all; clear all;  warning off
- 
 type        = 1; % 1 or 2
 m0          = 2e2*(type==1)+2e6*(type~=1);
 [X,y,tX,ty] = randomData('2D',m0,2,0);  
