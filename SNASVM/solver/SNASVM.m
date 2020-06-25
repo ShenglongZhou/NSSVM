@@ -32,8 +32,8 @@ if nargin<2; error('Inputs are not enough'); end
 t0    = tic; 
 [m,n] = size(X);
 
-if issparse(X) && nnz(X)/m/n>0.1  
-   X=full(X); 
+if issparse(X) && nnz(X)/m/n>0.2 
+   X  = full(X); 
 end
 
 if  n  <  3e4 
@@ -221,7 +221,7 @@ end
 
 if  iter ==1 
     w0      = [zeros(n,1); mu];
-  	alpha0  = alpha;
+    alpha0  = alpha;
 end
 if  display
     fprintf('------------------------------------------\n');
@@ -252,4 +252,4 @@ c       = 1e-2;
 eta     = 1/m;
 alpha   = zeros(m,1); 
 display = 1;
-end
+end 
