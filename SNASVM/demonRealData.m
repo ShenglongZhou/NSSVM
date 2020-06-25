@@ -20,8 +20,9 @@ out          = SNASVM(X,y);
 tacc         = accuracy(tX,out.w,ty);
 fprintf('Training  Time:             %5.3fsec\n',out.time);
 fprintf('Training  Size:             %dx%d\n',m,n);
-fprintf('Training  Accuracy:         %5.2f%%\n',out.acc*100) 
+fprintf('Training  Accuracy:         %5.2f%%\n',out.acc*100);
+fprintf('Number of Support Vectors:  %d\n',out.sv); 
 fprintf('Testing   Size:             %dx%d\n',size(tX,1),n);
 fprintf('Testing   Accuracy:         %5.2f%%\n',tacc*100);
-fprintf('Number of Support Vectors:  %d\n',out.sv); 
+
  
