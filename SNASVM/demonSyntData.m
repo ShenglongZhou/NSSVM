@@ -14,7 +14,7 @@ out         = SNASVM(X,y,pars);
 
 fprintf('Training  Time:             %5.3fsec\n',out.time);
 fprintf('Training  Size:             %dx%d\n',m,2);
-fprintf('Training  Accuracy:         %5.2f%%\n',out.acc*100) 
+fprintf('Training  Accuracy:         %5.2f%%\n',out.acc*100);
 fprintf('Number of Support Vectors:  %d\n',out.sv); 
 fprintf('Testing   Size:             %dx%d\n',size(tX,1),2);
 fprintf('Testing   Accuracy:         %5.2f%%\n',tacc*100);
