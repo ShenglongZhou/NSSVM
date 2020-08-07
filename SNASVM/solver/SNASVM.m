@@ -32,8 +32,8 @@ if nargin<2; error('Inputs are not enough'); end
 t0    = tic; 
 [m,n] = size(X);
 
-if issparse(X) && nnz(X)/m/n>0.2 
-   X  = full(X); 
+if issparse(X) && nnz(X)/m/n>0.1  
+   X=full(X); 
 end
 
 if  n  <  3e4 
@@ -94,7 +94,7 @@ for iter     = 1:maxIt
   
     alphaT   =  alpha(T); 
     betaT    = -beta(T);  
-    dm1      = -ytT*alphaT;     
+    dm1      = -ytT*alphaT; 
     err      = (abs(Fnorm(alpha)-Fnorm(alphaT))+Fnorm(betaT)+dm1^2)/m; 
     ERR(iter)= sqrt(err);
     if  display
@@ -133,18 +133,21 @@ for iter     = 1:maxIt
     alpha    = zeros(m,1);
     alphaT   = alphaT + d(1:s); 
     alpha(T) = alphaT;
-    mu       = mu     + d(end);
+    mu       = mu     + d(end); 
     
     w        = QT*alphaT;  
     Qtw      = Qt*w;
-    beta     = Qtw -1 + mu*y;
+    beta     = Qtw - 1 + mu*y;
     ET       = (alphaT>=0)/C + (alphaT<0)/c;
-    beta(T)  = alphaT.*ET + beta(T); 
+    c        = max(1e-4,c/2);
+    beta(T)  = alphaT.*ET + beta(T);  
 
     tmp      = y.*Qtw;
     b        = sum(y-tmp)/m; 
     j        = iter+1;
+    
     ACC(j)   = 1-nnz(sign(tmp+b)-y)/m ;    
+    if ACC(j)< 0.5; ACC(j)=1-ACC(j); end
     
     if m <  6e6
        opt.MaxIter = 12*(m>=1e6)+30*(m<1e6);
@@ -215,13 +218,13 @@ for iter     = 1:maxIt
        flag = 0; 
        T    = T0;
     end
-  
+    
 
 end
 
 if  iter ==1 
     w0      = [zeros(n,1); mu];
-    alpha0  = alpha;
+  	alpha0  = alpha;
 end
 if  display
     fprintf('------------------------------------------\n');
@@ -248,8 +251,8 @@ elseif mn >=6e4;  r = max(5,5e1*n*log10(m));
 end 
 s0      = ceil(min(0.2*m,r*n));   
 C       = 1e0;
-c       = 1e-2;
+c       = 1e0;
 eta     = 1/m;
 alpha   = zeros(m,1); 
 display = 1;
-end 
+end
