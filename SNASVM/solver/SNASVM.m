@@ -101,12 +101,14 @@ for iter     = 1:maxIt
         fprintf('  %3d          %6.2e         %6.2f%%\n',iter,err,ACC(iter)*100); 
     end
     
-    stop1    =  (abs(ACC(iter)-maxAcc0)<2e-4); 
-    stop2    =  (iter>2  && std(ACC(iter-2:iter))>1e-5); 
-    stop3    =  (iter>5  && std(ACC(1:iter))<1e-6);
-    stop4    =  (iter>10 && max(ACC(iter-10:iter))<maxAcc0);
-    if (stop1 && stop2) || stop3 || stop4 ||  ACC(iter)>= 0.99995       
-        break;  
+    stop1    =  (iter>10 && max(ACC(iter-10:iter))<maxAcc0);   
+    stop2    =  (iter>5  && std(ACC(1:iter))<1e-6);
+    stop3    =  (iter>2  && abs(ACC(iter)-maxAcc0)<2e-4...
+                         && std(ACC(iter-2:iter))>1e-5); 
+    if  ACC(iter)>0
+        if stop1 || stop2 || stop3  ||  ACC(iter)>= 0.99995       
+           break;  
+        end
     end
     
     ET     = (alphaT>=0)/C + (alphaT<0)/c;
@@ -146,8 +148,8 @@ for iter     = 1:maxIt
     b        = sum(y-tmp)/m; 
     j        = iter+1;
     
-    ACC(j)   = 1-nnz(sign(tmp+b)-y)/m ;    
-    if ACC(j)< 0.5; ACC(j)=1-ACC(j); end
+    ACC(j)    = 1-nnz(sign(tmp+b)-y)/m ;    
+    if abs(ACC(j)-.25)<.25; ACC(j)=1-ACC(j); end
     
     if m <  6e6
        opt.MaxIter = 12*(m>=1e6)+30*(m<1e6);
@@ -249,7 +251,7 @@ elseif mn < 1e2;  r = (1+1e-3*n)*log10(m);
 elseif mn < 6e4;  r = max(5,0.1*n*log10(m));
 elseif mn >=6e4;  r = max(5,5e1*n*log10(m)); 
 end 
-s0      = ceil(min(0.2*m,r*n));   
+s0      = max(4,ceil(min(0.2*m,r*n)));   
 C       = 1e0;
 c       = 1e0;
 eta     = 1/m;
