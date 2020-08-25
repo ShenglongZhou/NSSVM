@@ -103,10 +103,11 @@ for iter     = 1:maxIt
     
     stop1    =  (iter>10 && max(ACC(iter-10:iter))<maxAcc0);   
     stop2    =  (iter>5  && std(ACC(1:iter))<1e-6);
-    stop3    =  (iter>2  && abs(ACC(iter)-maxAcc0)<2e-4...
-                         && std(ACC(iter-2:iter))>1e-5); 
-    if  ACC(iter)>0
-        if stop1 || stop2 || stop3  ||  ACC(iter)>= 0.99995       
+    stop3    =  (iter>2  && ACC(iter)>= 0.99995); 
+    stop4    =  (iter>2  && abs(ACC(iter)-maxAcc0)<2e-4...
+                         && std(ACC(iter-2:iter))>1e-5);                      
+    if  ACC(iter)>0 
+        if stop1 || stop2 || stop3  || stop4     
            break;  
         end
     end
