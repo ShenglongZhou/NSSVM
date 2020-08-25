@@ -1,15 +1,15 @@
 % demon randomly generated data
 clc; close all; clear all;  warning off
  
-type        = 2; % 1 or 2 or 3
+type        = 1; % 1 or 2 or 3
 Ex          = {'2D', '3D', 'nD'};
-m0          = 200*(type==1)+1e6*(type>1);
+m0          = 2e6; % 200 
 n0          = 100;
 [X,y,tX,ty] = randomData(Ex{type},m0,n0,0);  
 [m, n]      = size(X); 
 
 pars.s0     = ceil(log10(m)*(10*(m<=1e4)+5*n*(m>1e4)));
-out         = SNASVM(X,y,pars); 
+out         = NSSVM(X,y,pars); 
 
 [acc,~,ec]  = accuracy(X,out.w,y);
 [tacc,~,tec]= accuracy(tX,out.w,ty);
@@ -30,4 +30,3 @@ if isequal(Ex{type},'2D') && m <400
    saveas(figure(1), 'output\snasvm-2D.fig');
    saveas(figure(1), 'output\snasvm-2D.png');
 end
- 
