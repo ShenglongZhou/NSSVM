@@ -1,4 +1,4 @@
-function Out = SNASVM(X,y,pars)
+function Out = NTSVM(X,y,pars)
 % Inputs:
 %       X    -- the sample data, dimension, \in\R^{m-by-n}; (required)
 %       y    -- the classes of the sample data, \in\R^m; (required)
@@ -22,7 +22,7 @@ function Out = SNASVM(X,y,pars)
 %     Out.acc:           Classification accuracy
 %
 %%%%%%%    Written by Shenglong Zhou on 18/06/2020 based on the algorithm proposed in
-%%%%%%%    S.Zhou,Subspace Newton Method for Sparse SVM,arXiv:2005.13771,2020. 
+%%%%%%%    S.Zhou,Sparse SVM for Sufficient Data Reduction,arXiv:2005.13771,2020. 
 %%%%%%%    Send your comments and suggestions to <<< shenglong.zhou@soton.ac.uk >>>                                  
 %%%%%%%    Warning: Accuracy may not be guaranteed!!!!!               
 
