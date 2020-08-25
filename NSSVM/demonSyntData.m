@@ -1,7 +1,7 @@
 % demon randomly generated data
 clc; close all; clear all;  warning off
  
-type        = 1; % 1 or 2 or 3
+type        = 1;   % 1 or 2 or 3
 Ex          = {'2D', '3D', 'nD'};
 m0          = 2e6; % 200 
 n0          = 100;
@@ -22,11 +22,11 @@ fprintf('Testing   Accuracy:         %5.2f%%\n',tacc*100);
 fprintf('Number of Support Vectors:  %d\n',out.sv); 
 if isequal(Ex{type},'2D') && m <400
    figure(1)
-   subplot(1,2,1), plot2D(X,y,ec,out.w,'snasvm',acc);
+   subplot(1,2,1), plot2D(X,y,ec,out.w,'NSSVM',acc);
    xlabel('Training data')
-   subplot(1,2,2), plot2D(tX,ty,tec,out.w,'snasvm',tacc);
+   subplot(1,2,2), plot2D(tX,ty,tec,out.w,'NSSVM',tacc);
    xlabel('Testing data')
-   saveas(figure(1), 'output\snasvm-2D.eps','epsc');
-   saveas(figure(1), 'output\snasvm-2D.fig');
-   saveas(figure(1), 'output\snasvm-2D.png');
+   saveas(figure(1), 'output\NSSVM-2D.eps','epsc');
+   saveas(figure(1), 'output\NSSVM-2D.fig');
+   saveas(figure(1), 'output\NSSVM-2D.png');
 end
