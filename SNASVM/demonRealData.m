@@ -13,7 +13,7 @@ T  = I(1+mt:end);  X  = data.X(T,:);    y  = class.y(T,:);  % training data
 clear data class  
 
 [m,n]        = size(X); 
-out          = SNASVM(X,y); 
+out          = NSSVM(X,y); 
 tacc         = accuracy(tX,out.w,ty);
 fprintf('Training  Time:             %5.3fsec\n',out.time);
 fprintf('Training  Size:             %dx%d\n',m,n);
