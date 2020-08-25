@@ -1,2 +1,2 @@
-# SNASVM
-Subspace Newton Method for Sparse Support Vector Machines 
+# NTSVM
+Newton Method for Sparse Support Vector Machines 
