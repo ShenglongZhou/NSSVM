@@ -225,10 +225,11 @@ for iter     = 1:maxIt
 
 end
 
-if  iter ==1 
+if  iter == 1 
     w0      = [zeros(n,1); mu];
-  	alpha0  = alpha;
+  	 alpha0  = alpha;
 end
+
 if  display
     fprintf('------------------------------------------\n');
 end
