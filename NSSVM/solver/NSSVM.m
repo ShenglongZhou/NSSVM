@@ -255,7 +255,7 @@ elseif mn >=6e4;  r = max(5,5e1*n*log10(m));
 end 
 s0      = max(4,ceil(min(0.2*m,r*n)));   
 C       = 1e0;
-c       = 1e0;
+c       = 1e-2;
 eta     = 1/m;
 alpha   = zeros(m,1); 
 display = 1;
