@@ -6,9 +6,15 @@ function Out = NSSVM(X,y,pars)
 %       pars -- parameters (optional)
 %               
 %     pars:     Parameters are all OPTIONAL
-%               pars.alpha0  --  Starting point of alpha \in\R^m,  (default, zeros(m,1)) 
-%               pars.display --  =1. Display results for each iteration.(default)
+%               pars.alpha   --  Starting point of alpha \in\R^m,  (default, zeros(m,1)) 
+%               pars.disp    --  =1. Display results for each iteration.(default)
 %                                =0. No results are displayed for each iteration.
+%               pars.s0      --  The initial sparsity level  
+%                                An integer in [1,m] (default, n(log(m/n))^2) 
+%               pars.tune    --  =1. Tune the sparsity level automatically.(default)
+%                                =0. Not tune the saprsity level.
+%               pars.C       --  A positive scalar in (0,1].(default, 1/4) 
+%               pars.c       --  A positive scalar in (0,1].(default, 1/8) 
 %               pars.maxit   --  Maximum number of iterations, (default,2000) 
 %               pars.tol     --  Tolerance of the halting condition, (default,1e-6*sqrt(n*m))
 %
@@ -35,168 +41,206 @@ t0    = tic;
 if issparse(X) && nnz(X)/m/n>0.1  
    X=full(X); 
 end
-
+ 
 if  n  <  3e4 
     Qt = y.*X;
 else
     Qt = spdiags(y,0,m,m)*X; 
 end
-
-Q     = Qt';
-yt    = y';
+ 
+Q     = Qt';   
 Fnorm = @(var)norm(var).^2;
 
-[maxIt,tol,eta,s,C,c,alpha,display] = GetParameters(m,n);
-if nargin<3;               pars    = [];             end
-if isfield(pars,'s0');     s       = min(m,pars.s0); end
-if isfield(pars,'tol');    tol     = pars.tol;       end
-if isfield(pars,'maxIt');  maxIt   = pars.maxIt;     end
-if isfield(pars,'alpha0'); alpha   = pars.alpha0;    end
-if isfield(pars,'display');display = pars.display;   end
- 
+[maxit,alpha,tune,disp,tol,eta,s0,C,c] = GetParameters(m,n);
+if nargin<3;               pars  = [];             end
+if isfield(pars,'maxit');  maxit = pars.maxit;     end
+if isfield(pars,'alpha');  alpha = pars.alpha;     end
+if isfield(pars,'disp');   disp  = pars.disp;      end
+if isfield(pars,'tune');   tune  = pars.tune;      end
+if isfield(pars,'tol');    tol   = pars.tol;       end
+if isfield(pars,'eta');    eta   = pars.eta;       end
+if isfield(pars,'s0');     s0    = min(m,pars.s0); end
+if isfield(pars,'C');      C     = pars.C;         end
+if isfield(pars,'c');      c     = pars.c;         end
+
 T1      = find(y==1);  nT1= nnz(T1);
 T2      = find(y==-1); nT2= nnz(T2);
-if  nT1 < s
-    T  = [T1; T2(1:(s-nT1))];   
-elseif nT2 < s
-    T  = [T1(1:(s-nT2)); T2]; 
+if  nT1 < s0
+    T  = [T1; T2(1:(s0-nT1))];   
+elseif nT2 < s0
+    T  = [T1(1:(s0-nT2)); T2]; 
 else 
-    T  = [T1(1:ceil(s/2)); T2(1:(s-ceil(s/2)))];    
+    T  = [T1(1:ceil(s0/2)); T2(1:(s0-ceil(s0/2)))];    
 end
-T       = sort(T(1:s));
- 
-mu0     = (nT1>=nT2)-(nT1<nT2);
-mu      = mu0;
-beta    = -ones(m,1);
+T       = sort(T(1:s0));
+s       = s0;
+b       = (nT1>=nT2)-(nT1<nT2);
+bb      = b;
+w       = zeros(n,1);
+gz      = -ones(m,1);
+ERR     = zeros(maxit,1);  
+ACC     = zeros(maxit,1);  
+ACC(1)  = 1-nnz(sign(b)-y)/m; 
+ET      = ones(s,1)/C;
+
 maxACC  = 0;
 flag    = 1;
-ERR     = zeros(maxIt,1);  
-ACC     = zeros(maxIt,1);  
-ACC(1)  = 1-nnz(sign(mu)-y)/m; 
+j       = 1;
+r       = 1.1; 
+count   = 1;
+count0  = 2;
+iter0   = -1;
 
-b0      = 0;
-maxAcc0 = 0;
-
-if  display
-    fprintf('Run SNSVM ...... \n');   
+if  disp
+    fprintf('Run NSSVM ...... \n');   
     fprintf('------------------------------------------\n');
     fprintf('  Iter          Error           Accuracy  \n')
     fprintf('------------------------------------------\n');
 end
-for iter     = 1:maxIt
+ 
+for iter     = 1:maxit
     
     if iter == 1 || flag
        QT    = Q(:,T);  
        QtT   = Qt(T,:); 
        yT    = y(T);
-       ytT   = yt(T);
+       ytT   = yT';  
+    end
+      
+    alphaT   =  alpha(T);  
+    gzT      = -gz(T);  
+    alyT     = -ytT*alphaT; 
+    
+    err      = (abs(Fnorm(alpha)-Fnorm(alphaT))+Fnorm(gzT)+alyT^2)/(m*n); 
+    ERR(iter)= sqrt(err);   
+      
+    if  tune  && iter < 30  && m<=1e8 
+        stop1  = ( iter>5 && err < tol*s*log2(m) );  
+        stop2  = ( s~=s0 && abs(ACC(iter)- max(ACC(1:iter-1))) <= 1e-4);   
+        stop3  = ( s~=s0 && iter>10 &&  max(ACC(iter-5:iter)) < maxACC); 
+        stop4  = ( count~=count0+1 && ACC(iter)>= ACC(1));  
+        stop   = ( stop1 && (stop2 || stop3) &&  stop4 ); 
+    else         
+        stop1  = ( err <tol*sqrt(s)*log10(m) );   
+        stop2  = ( iter>4 && std(ACC(iter-1:iter))<1e-4 );    
+        stop3  = ( iter>20 && abs(max(ACC(iter-8:iter ))-maxACC)<=1e-4 );    
+        stop   = ( stop1  && stop2) || stop3;
+    end
+    if  disp
+        fprintf('  %3d          %6.2e         %7.5f\n',iter,err,ACC(iter)); 
+    end
+    
+    if  ACC(iter)>0 && ( ACC(iter)>= 0.99999 || stop )
+        break;  
+    end
+    
+    ET0    = ET;
+    ET     = (alphaT>=0)/C +(alphaT<0)/c; 
+  
+    if min(n,s) > 1e3
+         funcHd = @(var)Hd(QT,yT,ET,var(1:end-1),var(end));
+         [d,~]  =  pcg(funcHd,[gzT; alyT],1e-8*s,20);
+         dT     = d(1:s);
+         dend   = d(end); 
+    else     
+        if  s  <=   n   
+            if iter == 1 || flag
+               PTT0   = QtT*QT;  
+            end         
+            PTT  = PTT0 + spdiags(ET,0,s,s);
+            d    = [PTT yT; ytT 0]\[gzT; alyT]; 
+            dT   = d(1:s);
+            dend = d(end);  
+        else
+            
+            ETinv = 1./ET;           
+            flag1  = nnz(ET0)~=nnz(ET);
+            flag2  = nnz(ET0)==nnz(ET) && nnz(ET0-ET)==0; 
+            if iter == 1 || flag || flag1 || ~flag2 
+               EQtT  = spdiags(ETinv,0,s,s)*QtT;  
+               P0    = speye(n) + QT*EQtT; 
+            end     
+            Ey    = ETinv.*yT;
+            Hy    = Ey-EQtT*(P0\(QT*Ey));  
+            dend  = (gzT'*Hy-alyT)/(ytT*Hy); 
+            tem   = ETinv.*(gzT-dend*yT);
+            dT    = tem-EQtT*(P0\(QT*tem));   
+                       
+        end    
     end
   
-    alphaT   =  alpha(T); 
-    betaT    = -beta(T);  
-    dm1      = -ytT*alphaT; 
-    err      = (abs(Fnorm(alpha)-Fnorm(alphaT))+Fnorm(betaT)+dm1^2)/m; 
-    ERR(iter)= sqrt(err);
-    if  display
-        fprintf('  %3d          %6.2e         %6.2f%%\n',iter,err,ACC(iter)*100); 
-    end
-    
-    stop1    =  (iter>10 && max(ACC(iter-10:iter))<maxAcc0);   
-    stop2    =  (iter>5  && std(ACC(1:iter))<1e-6);
-    stop3    =  (iter>2  && ACC(iter)>= 0.99995); 
-    stop4    =  (iter>2  && abs(ACC(iter)-maxAcc0)<2e-4...
-                         && std(ACC(iter-2:iter))>1e-5);                      
-    if  ACC(iter)>0 
-        if stop1 || stop2 || stop3  || stop4     
-           break;  
-        end
-    end
-    
-    ET     = (alphaT>=0)/C + (alphaT<0)/c;
-    if  s <= n  
-        if iter == 1 || flag
-           PTT   = QtT*QT;  
-        end    
-        PTT      = PTT + spdiags(ET,0,s,s);
-        d        = [PTT yT; ytT 0]\[betaT; dm1]; 
-    else
-        ETinv = 1./ET;
-        if iter == 1 || flag         
-           EQtT  = spdiags(ETinv,0,s,s)*QtT;  
-           P0    = speye(n) + QT*EQtT; 
-        end
-        Ez       = ETinv.*betaT;
-        Hz       = Ez-EQtT*(P0\(QT*Ez));  
-        Ey       = ETinv.*yT;
-        Hy       = Ey-EQtT*(P0\(QT*Ey));  
-        dend     = (ytT*Hz-dm1)/(ytT*Hy);  
-        d        = [Hz-dend*Hy; dend];  
-    end
-
-    alpha    = zeros(m,1);
-    alphaT   = alphaT + d(1:s); 
+    alpha    = zeros(m,1);  
+    alphaT   = alphaT + dT;  
     alpha(T) = alphaT;
-    mu       = mu     + d(end); 
+    b        = b + dend; 
     
     w        = QT*alphaT;  
-    Qtw      = Qt*w;
-    beta     = Qtw - 1 + mu*y;
-    ET       = (alphaT>=0)/C + (alphaT<0)/c;
-    c        = max(1e-4,c/2);
-    beta(T)  = alphaT.*ET + beta(T);  
-
-    tmp      = y.*Qtw;
-    b        = sum(y-tmp)/m; 
-    j        = iter+1;
+    Qtw      = Qt*w;    
+    tmp      = y.*Qtw; 
+        
+    gz       = Qtw - 1 + b*y;
+    ET1      = (alphaT>=0)/C + (alphaT<0)/c; 
+    gz(T)    = alphaT.*ET1 + gz(T);  
+          
+    j        = iter+1;   
+    ACC(j)   = 1-nnz(sign(tmp+b)-y)/m; 
     
-    ACC(j)    = 1-nnz(sign(tmp+b)-y)/m ;    
-    if abs(ACC(j)-.25)<.25; ACC(j)=1-ACC(j); end
-    
-    if m <  6e6
-       opt.MaxIter = 12*(m>=1e6)+30*(m<1e6);
-       opt.Display = 'off';
-       b0          = fminsearch(@(t)norm(sign(tmp+t(1))-y),b0,opt);
-       ACC0        = 1-nnz(sign(tmp+b0)-y)/m; 
-       if ACC(j)   < ACC0
-          ACC(j)   = ACC0;  
-          b        = b0;    
-       end   
+    if m    <= 1e7
+        bb       = mean(yT-tmp(T)); 
+        ACCbb    = 1-nnz(sign(tmp+bb)-y)/m;         
+        if  ACC(j) >= ACCbb 
+            bb      = b;  
+        else
+            ACC(j)  = ACCbb; 
+        end
+    else
+        bb = b;
     end
-     
-    maxAcc0    = maxACC;
-    if ACC(j)  > maxACC   
+      
+    if  m <  6e6 &&  ACC(j)<0.5
+        opt.MaxIter = 10*(m>=1e6)+20*(m<1e6);
+        opt.Display = 'off';
+        b0          = fminsearch(@(t)sum((sign(tmp+t(1))-y).^2),bb,opt);     
+        acc0        = 1-nnz(sign(tmp+b0)-y)/m;   
+        if  ACC(j)  < acc0
+            bb      = b0;   
+            ACC(j)  = acc0;
+        end  
+    end
+   
+    if ACC(j) >= maxACC   
         maxACC = ACC(j);
-        alpha0 = alpha; 
-        w0     = [w;b];
+        alpha0 = alpha;
+        tmp0   = tmp;
+        maxwb  = [w;bb];
     end 
     
-    flag1 = (iter>4 && std(ERR(iter-4:iter))<1e-5);
-    r     = 1;
-    mark  = 0;
-    if mod(iter,10)==0 || (flag1 && err<tol) 
-       if flag1 ||  err<tol || mod(iter,20)==0 
-       r     = 1.15;
-       eta   = 1/m; 
-       alpha = zeros(m,1);
-       beta  = -ones(m,1);
-       mu    = mu0;   
-       mark  = 1;
-       end
-    end
-  
-    s     = min(m,ceil(r*s));    
-    T0    = T;
-    
-    if s~=m
-        if  m     < 5e7 
-            [~,T] = maxk(abs(alpha-eta*beta),s);  
+    T0    = T;        
+    mark  = 0;     
+    if tune && ( err<tol || mod(iter,10)==0 ) && iter>iter0+2 && count<10
+       count0   = count;  
+       count    = count + 1;       
+       s        = min(m,ceil(r*s));  
+       iter0    = iter;
+       if count > (m>=1e6 || n<3) + 1*(m<1e6 && n>=5)           
+          alpha = zeros(m,1);
+          gz    = -ones(m,1); 
+          mark  = 1;  
+       end   
+    else
+       count0   = count; 
+    end   
+     
+    if s~= m      
+        if  m     < 5e8 
+            [~,T] = maxk(abs(alpha-eta*gz),s);  
         else      
-            [~,T] = sort(abs(alpha-eta*beta),'descend');
+            [~,T] = sort(abs(alpha-eta*gz),'descend');
         end
             T     = sort(T(1:s));
-   
+
         if  mark
-            nT         = nnz(y(T)==1);
+            nT         = nnz(y(T)==1);  
             if     nT == s 
                 if nT2<= .75*s 
                 T      = [T(1:s-ceil(nT2/2)); T2(1: ceil(nT2/2))]; 
@@ -211,52 +255,84 @@ for iter     = 1:maxIt
                 end
             end
             T          = sort(T(1:s));
-        end
+        end  
     else
         T    = 1:m;
     end
     
     flag  = 1;
-    if (nnz(T0)==s && isempty(setdiff(T,T0))) || nnz(T0)==m
-       flag = 0; 
-       T    = T0;
+    flag3 = nnz(T0)==s;
+ 
+    if flag3
+       flag3 = nnz(T-T0)==0;
     end
-    
-
+    if flag3 || nnz(T0)==m
+       flag = 0; 
+       T    = T0;  
+    end   
+ 
 end
 
-if  iter == 1 
-    w0      = [zeros(n,1); mu];
-  	 alpha0  = alpha;
+% output results ----------------------------------------------------------
+
+wb   = [w;bb];
+acc  = ACC(j);  
+
+if m <= 1e7 && iter >1
+   opt.MaxIter = 20; 
+   opt.Display = 'off';
+   b0          = fminsearch(@(t)norm(sign(tmp0+t(1))-y),maxwb(end),opt);  
+   acc0        = 1-nnz(sign(tmp0+b0)-y)/m;     
+   if acc      < acc0
+      wb       = [maxwb(1:end-1);b0];  
+      acc      = acc0; 
+   end   
 end
 
-if  display
+if acc    < maxACC-1e-4  
+   alpha  = alpha0;
+   wb     = maxwb;  
+   acc    = maxACC;
+end
+
+if  disp
     fprintf('------------------------------------------\n');
 end
 Out.s     = s;
-Out.w     = w0;
-Out.sv    = nnz(alpha0);
-Out.acc   = maxACC;
+Out.w     = wb;
+Out.sv    = s;
+Out.ACC   = acc;
 Out.iter  = iter; 
 Out.time  = toc(t0);
-Out.alpha = alpha0;
+Out.alpha = alpha;
 clear X y yt ytT yT Q Qt QtT QtT P0 PPT EQtT 
 end
 
 %--------------------------------------------------------------------------
-function [maxIt,tol,eta,s0,C,c,alpha,display] = GetParameters(m,n)
-maxIt = 1e3;
-tol   = 1e-6*sqrt(n*m);  
-mn    = m/n; 
-if     mn < 10 ;  r = 1;
-elseif mn < 1e2;  r = (1+1e-3*n)*log10(m);
-elseif mn < 6e4;  r = max(5,0.1*n*log10(m));
-elseif mn >=6e4;  r = max(5,5e1*n*log10(m)); 
+function [maxit,alpha,tune,disp,tol,eta,s0,C,c] = GetParameters(m,n)
+maxit   = 1e3;
+alpha   = zeros(m,1);
+tune    = 1; 
+disp    = 1;
+tol     = 1e-6;  
+eta     = min(1/m,1e-4);
+
+if max(m,n)<1e4; beta = 1;
+elseif m<=5e5; beta = 0.05;
+elseif m<=1e8; beta = 10;   
 end 
-s0      = max(4,ceil(min(0.2*m,r*n)));   
-C       = 1e0;
-c       = 1e-2;
-eta     = 1/m;
-alpha   = zeros(m,1); 
-display = 1;
+s0      = ceil(beta*n*(log2(m/n))^2);
+
+if m   > 5e6
+   C  = log10(m);  
+else
+   C  = 1/2;      
+end
+c  = C/100; 
+
+end
+
+%--------------------------------------------------------------------------
+function funcHd = Hd(QT,yT,ET,dT,dend)
+funcHd =  [((QT*dT)'*QT)'+ ET.*dT + dend*yT; sum(yT.*dT)];
 end
