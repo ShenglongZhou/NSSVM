@@ -11,8 +11,8 @@ pars.C      = 0.25;
 pars.s0     = ceil(n*(log(m/n))^2);
 out         = NSSVM(X,y,pars);  
 
-[acc,~,ec]  = accuracy(X,out.w,y); 
-[tacc,~,tec]= accuracy(tX,out.w,ty);
+acc         = accuracy(X,out.w,y); 
+tacc        = accuracy(tX,out.w,ty);
 
 fprintf('Training  Time:             %5.3fsec\n',out.time);
 fprintf('Training  Size:             %dx%d\n',m,n);
@@ -23,8 +23,8 @@ fprintf('Number of Support Vectors:  %d\n',out.sv);
 if isequal(Ex{type},'2D') && m <400
    figure('Renderer', 'painters', 'Position', [800, 200, 650 300])
    axes('Position', [0.12 0.14 0.9 0.8] ); 
-   subplot(1,2,1), plot2D(X,y,ec,out.w,'NSSVM',acc);
+   subplot(1,2,1), plot2D(X,y,out.w,'NSSVM',acc);
    xlabel('Training data')
-   subplot(1,2,2), plot2D(tX,ty,tec,out.w,'NSSVM',tacc);
+   subplot(1,2,2), plot2D(tX,ty,out.w,'NSSVM',tacc);
    xlabel('Testing data')
 end
