@@ -318,18 +318,16 @@ tol     = 1e-6;
 eta     = min(1/m,1e-4);
 
 if max(m,n)<1e4; beta = 1;
-elseif m<=5e5; beta = 0.05;
-elseif m<=1e8; beta = 10;   
+elseif m<=5e5;   beta = 0.05;
+elseif m<=1e8;   beta = 10;   
 end 
-s0      = ceil(beta*n*(log2(m/n))^2);
-
-if m   > 5e6
-   C  = log10(m);  
+s0   = ceil(beta*n*(log2(m/n))^2);
+if m > 5e6
+   C = log10(m);  
 else
-   C  = 1/2;      
+   C = 1/2;      
 end
-c  = C/100; 
-
+c    = C/100; 
 end
 
 %--------------------------------------------------------------------------
