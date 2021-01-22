@@ -1,4 +1,4 @@
-function [acc,mis,sz] = accuracy(X,x,y)
+function [acc,mis] = accuracy(X,x,y)
 if ~isempty(X)  
     z        = X*x(1:end-1)+x(end); 
     sz       = sign(z);
@@ -9,6 +9,5 @@ if ~isempty(X)
 else
     acc = NaN;
     mis = NaN;
-    sz  = NaN;
 end
 end
