@@ -11,8 +11,8 @@ function Out = NSSVM(X,y,pars)
 %                                =0. No results are displayed for each iteration.
 %               pars.s0      --  The initial sparsity level  
 %                                An integer in [1,m] (default, n(log(m/n))^2) 
-%               pars.tune    --  =1. Tune the sparsity level automatically.(default)
-%                                =0. Not tune the saprsity level.
+%               pars.tune    --  =1. Tune the sparsity level automatically.
+%                                =0. Not tune the saprsity level.(default)
 %               pars.C       --  A positive scalar in (0,1].(default, 1/4) 
 %               pars.c       --  A positive scalar in (0,1].(default, 1/8) 
 %               pars.maxit   --  Maximum number of iterations, (default,2000) 
@@ -115,10 +115,10 @@ for iter     = 1:maxit
     ERR(iter)= sqrt(err);   
       
     if  tune  && iter < 30  && m<=1e8 
-        stop1  = ( iter>5 && err < tol*s*log2(m) );  
+        stop1  = ( iter>5 && err < tol*s*log2(m)/100);  
         stop2  = ( s~=s0 && abs(ACC(iter)- max(ACC(1:iter-1))) <= 1e-4);   
         stop3  = ( s~=s0 && iter>10 &&  max(ACC(iter-5:iter)) < maxACC); 
-        stop4  = ( count~=count0+1 && ACC(iter)>= ACC(1));  
+        stop4  = ( count~=count0+1 && ACC(iter)>= ACC(1));   
         stop   = ( stop1 && (stop2 || stop3) &&  stop4 ); 
     else         
         stop1  = ( err <tol*sqrt(s)*log10(m) );   
@@ -130,7 +130,7 @@ for iter     = 1:maxit
         fprintf('  %3d          %6.2e         %7.5f\n',iter,err,ACC(iter)); 
     end
     
-    if  ACC(iter)>0 && ( ACC(iter)>= 0.99999 || stop )
+    if  ACC(iter)>0 && ( ACC(iter)>= 0.99999  || stop )
         break;  
     end
     
@@ -138,8 +138,7 @@ for iter     = 1:maxit
     ET     = (alphaT>=0)/C +(alphaT<0)/c; 
   
     if min(n,s) > 1e3
-         funcHd = @(var)Hd(QT,yT,ET,var(1:end-1),var(end));
-         [d,~]  =  pcg(funcHd,[gzT; alyT],1e-8*s,20);
+         d      = my_cg(QT,yT,ET,[gzT; alyT],1e-10,50,zeros(s+1,1));
          dT     = d(1:s);
          dend   = d(end); 
     else     
@@ -148,11 +147,10 @@ for iter     = 1:maxit
                PTT0   = QtT*QT;  
             end         
             PTT  = PTT0 + spdiags(ET,0,s,s);
-            d    = [PTT yT; ytT 0]\[gzT; alyT]; 
+            d    = [PTT yT; ytT 0]\[gzT; alyT];  
             dT   = d(1:s);
             dend = d(end);  
-        else
-            
+        else           
             ETinv = 1./ET;           
             flag1  = nnz(ET0)~=nnz(ET);
             flag2  = nnz(ET0)==nnz(ET) && nnz(ET0-ET)==0; 
@@ -160,11 +158,11 @@ for iter     = 1:maxit
                EQtT  = spdiags(ETinv,0,s,s)*QtT;  
                P0    = speye(n) + QT*EQtT; 
             end     
-            Ey    = ETinv.*yT;
-            Hy    = Ey-EQtT*(P0\(QT*Ey));  
-            dend  = (gzT'*Hy-alyT)/(ytT*Hy); 
-            tem   = ETinv.*(gzT-dend*yT);
-            dT    = tem-EQtT*(P0\(QT*tem));   
+            Ey   = ETinv.*yT;
+            Hy   = Ey-EQtT*(P0\(QT*Ey));  
+            dend = (gzT'*Hy-alyT)/(ytT*Hy); 
+            tem  = ETinv.*(gzT-dend*yT); 
+            dT   = tem-EQtT*(P0\(QT*tem));   
                        
         end    
     end
@@ -186,12 +184,12 @@ for iter     = 1:maxit
     ACC(j)   = 1-nnz(sign(tmp+b)-y)/m; 
     
     if m    <= 1e7
-        bb       = mean(yT-tmp(T)); 
-        ACCbb    = 1-nnz(sign(tmp+bb)-y)/m;         
-        if  ACC(j) >= ACCbb 
+        bb   = mean(yT-tmp(T)); 
+        ACCb = 1-nnz(sign(tmp+bb)-y)/m;         
+        if  ACC(j) >= ACCb 
             bb      = b;  
         else
-            ACC(j)  = ACCbb; 
+            ACC(j)  = ACCb; 
         end
     else
         bb = b;
@@ -240,8 +238,8 @@ for iter     = 1:maxit
             T     = sort(T(1:s));
 
         if  mark
-            nT         = nnz(y(T)==1);  
-            if     nT == s 
+            nT  = nnz(y(T)==1);  
+            if  nT == s 
                 if nT2<= .75*s 
                 T      = [T(1:s-ceil(nT2/2)); T2(1: ceil(nT2/2))]; 
                 else
@@ -308,15 +306,14 @@ Out.alpha = alpha;
 clear X y yt ytT yT Q Qt QtT QtT P0 PPT EQtT 
 end
 
-%--------------------------------------------------------------------------
+%Initial parameters --------------------------------------------------------
 function [maxit,alpha,tune,disp,tol,eta,s0,C,c] = GetParameters(m,n)
 maxit   = 1e3;
 alpha   = zeros(m,1);
-tune    = 1; 
+tune    = 0; 
 disp    = 1;
 tol     = 1e-6;  
 eta     = min(1/m,1e-4);
-
 if max(m,n)<1e4; beta = 1;
 elseif m<=5e5;   beta = 0.05;
 elseif m<=1e8;   beta = 10;   
@@ -330,7 +327,24 @@ end
 c    = C/100; 
 end
 
-%--------------------------------------------------------------------------
-function funcHd = Hd(QT,yT,ET,dT,dend)
-funcHd =  [((QT*dT)'*QT)'+ ET.*dT + dend*yT; sum(yT.*dT)];
+% Conjugate gradient method-------------------------------------------------
+function x = my_cg(Q,y,E,b,cgtol,cgit,x)
+    r = b;
+    e = sum(r.*r);
+    t = e;
+    for i = 1:cgit  
+        if e < cgtol*t; break; end
+        if  i == 1  
+            p = r;
+        else
+            p = r + (e/e0)*p;
+        end
+        p1 = p(1:end-1);
+        w  =  [((Q*p1)'*Q)'+ E.*p1 + p(end)*y; sum(y.*p1)]; 
+        a  = e/sum(p.*w);  
+        x  = x + a * p;
+        r  = r - a * w;
+        e0 = e;
+        e  = sum(r.*r);
+    end
 end
