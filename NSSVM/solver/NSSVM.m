@@ -28,7 +28,8 @@ function Out = NSSVM(X,y,pars)
 %     Out.acc:           Classification accuracy
 %
 %%%%%%%    Written by Shenglong Zhou on 18/06/2020 based on the algorithm proposed in
-%%%%%%%    S.Zhou,Sparse SVM for Sufficient Data Reduction,arXiv:2005.13771,2020. 
+%%%%%%%    Shenglong Zhou, Sparse SVM for Sufficient Data Reduction, 2021,
+%%%%%%%    IEEE Transactions on Pattern Analysis and Machine Intelligence, 10.1109/TPAMI.2021.3075339. 
 %%%%%%%    Send your comments and suggestions to <<< shenglong.zhou@soton.ac.uk >>>                                  
 %%%%%%%    Warning: Accuracy may not be guaranteed!!!!!               
 
