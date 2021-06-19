@@ -50,7 +50,7 @@ else
 end
  
 Q     = Qt';   
-Fnorm = @(var)norm(var).^2;
+Fnorm = @(var)norm(var,'fro')^2;
 
 [maxit,alpha,tune,disp,tol,eta,s0,C,c] = GetParameters(m,n);
 if nargin<3;               pars  = [];             end
