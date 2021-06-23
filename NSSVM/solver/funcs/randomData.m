@@ -15,7 +15,6 @@ function [Atr,ctr,Ate,cte] = randomData(type,m,n,r)
 % written by Shenglong Zhou, 10/05/2020
 
 m2    = ceil(m/2);
-rng('shuffle');
 
 switch type
     case '2D'
@@ -27,7 +26,7 @@ switch type
         t     = 2*pi*rand(m2,1);   
         data1 = [rho.*cos(t), rho.*sin(t) rho.*rho];
 
-        rho     = .5 + 0.03*randn(m2,1); 
+        rho   = .5 + 0.03*randn(m2,1); 
         t     = 2*pi*rand(m2,1);      
         data2 = [rho.*cos(t), rho.*sin(t) -rho.*rho];
         A     = [data1; data2];
