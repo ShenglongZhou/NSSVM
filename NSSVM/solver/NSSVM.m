@@ -1,7 +1,7 @@
 function Out = NSSVM(X,y,pars)
 % Inputs:
-%       X    -- the sample data, dimension, \in\R^{m-by-n}; (required)
-%       y    -- the classes of the sample data, \in\R^m; (required)
+%       X    -- the sample data in \R^{m-by-n};         (required)
+%       y    -- the classes of the sample data in \R^m; (required)
 %               y_i \in {+1,-1}, i=1,2,...,m
 %       pars -- parameters (optional)
 %               
