@@ -1,10 +1,8 @@
 function Out = NSSVM(X,y,pars)
 % Inputs:
-%       X    -- the sample data in \R^{m-by-n};         (required)
-%       y    -- the classes of the sample data in \R^m; (required)
-%               y_i \in {+1,-1}, i=1,2,...,m
-%       pars -- parameters (optional)
-%               
+%     X     -- the sample data \in\R^{m-by-n};         (required)
+%     y      -- the classes of the sample data, \in\R^m;    (required)
+%               y_i \in {+1,-1}, i=1,2,...,m             
 %     pars:     Parameters are all OPTIONAL
 %               pars.alpha   --  Starting point of alpha \in\R^m,  (default, zeros(m,1)) 
 %               pars.disp    --  =1. Display results for each iteration.(default)
