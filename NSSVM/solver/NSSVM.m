@@ -1,36 +1,42 @@
 function Out = NSSVM(X,y,pars)
 % Inputs:
-%     X     -- the sample data \in\R^{m-by-n};         (required)
-%     y      -- the classes of the sample data, \in\R^m;    (required)
-%               y_i \in {+1,-1}, i=1,2,...,m             
-%     pars:     Parameters are all OPTIONAL
-%               pars.alpha   --  Starting point of alpha \in\R^m,  (default, zeros(m,1)) 
-%               pars.disp    --  =1. Display results for each iteration.(default)
-%                                =0. No results are displayed for each iteration.
-%               pars.s0      --  The initial sparsity level  
-%                                An integer in [1,m] (default, n(log(m/n))^2) 
-%               pars.tune    --  =1. Tune the sparsity level automatically.
-%                                =0. Not tune the saprsity level.(default)
-%               pars.C       --  A positive scalar in (0,1].(default, 1/4) 
-%               pars.c       --  A positive scalar in (0,1].(default, 1/8) 
-%               pars.maxit   --  Maximum number of iterations, (default,2000) 
-%               pars.tol     --  Tolerance of the halting condition, (default,1e-6*sqrt(n*m))
-%
+%     X  :  The sample data in \R^{m-by-n}  (required)
+%     y  :  The classes of the sample data in \R^m (required)
+%           y_i in {+1,-1}, i=1,2,...,m             
+%     pars: Parameters are all OPTIONAL
+%           pars.alpha --  Starting point in \R^m 
+%                          Default value = zeros(m,1) 
+%           pars.s0    --  The initial sparsity level in [1,m] 
+%                          Default value = n(log(m/n))^2) 
+%           pars.C     --  A positive scalar in (0,1] 
+%                          Default value = 1/4  
+%           pars.c     --  A positive scalar in (0,1] 
+%                          Default value = 1/8  
+%           pars.disp  --  Display or not display results for each step 
+%                          Default value = 1 (display)
+%           pars.tune  --  Tune or not turn the sparsity level 
+%                          Default value = 0 (not turn)
+%           pars.maxit --  Maximum number of iterations 
+%                          Default value = 2000  
+%           pars.tol   --  Tolerance of the halting condition
+%                          Default value = 1e-6*sqrt(n*m) 
+% =========================================================================
 % Outputs:
-%     Out.alpha:         The sparse solution alpha
-%     Out.w:             The solution of the primal problem, namely the classifier
-%     Out.s:             Sparsity level of the solution Out.alpha
-%     Out.sv:            Number of support vectors 
-%     Out.time           CPU time
-%     Out.iter:          Number of iterations
-%     Out.acc:           Classification accuracy
-%
-%%%%%%%    Written by Shenglong Zhou on 18/06/2020 based on the algorithm proposed in
-%%%%%%%    Shenglong Zhou, Sparse SVM for Sufficient Data Reduction, 2021,
-%%%%%%%    IEEE Transactions on Pattern Analysis and Machine Intelligence, 10.1109/TPAMI.2021.3075339. 
-%%%%%%%    Send your comments and suggestions to <<< shenglong.zhou@soton.ac.uk >>>                                  
-%%%%%%%    Warning: Accuracy may not be guaranteed!!!!!               
-
+%     Out.alpha:  The sparse solution alpha
+%     Out.w:      The solution of the primal problem, i.e.,the classifier
+%     Out.s:      Sparsity level of the solution,i.e., nnz( Out.alpha)
+%     Out.sv:     Number of support vectors 
+%     Out.time    CPU time
+%     Out.iter:   Number of iterations
+%     Out.acc:    Classification accuracy
+% =========================================================================
+% Written by Shenglong Zhou on 18/06/2020 based on the algorithm proposed in
+%     Shenglong Zhou, Sparse SVM for Sufficient Data Reduction,
+%     IEEE Transactions on Pattern Analysis and Machine Intelligence, 
+%     10.1109/TPAMI.2021.3075339, 2021.
+% Send your comments and suggestions to <<< slzhou2021@163.com >>>                                  
+% WARNING: Accuracy may not be guaranteed !!!!!  
+% =========================================================================
 
 if nargin<2; error('Inputs are not enough'); end
 
