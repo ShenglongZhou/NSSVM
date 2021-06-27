@@ -1,4 +1,5 @@
 function Out = NSSVM(X,y,pars)
+% =========================================================================
 % Inputs:
 %     X  :  The sample data in \R^{m-by-n}  (required)
 %     y  :  The classes of the sample data in \R^m (required)
